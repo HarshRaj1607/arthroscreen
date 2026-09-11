@@ -75,8 +75,17 @@ button{font-family:inherit;}
   border:none;background:none;border-radius:8px;cursor:pointer;text-align:left;
 }
 .patient-menu button:hover{background:var(--bg);}
+.patient-menu .add-trigger{justify-content:center;color:var(--blue);font-weight:600;
+  border-top:1px solid var(--border);margin-top:4px;padding-top:10px;}
 .patient-menu .pid{font-family:var(--mono);font-size:.79rem;font-weight:600;}
 .patient-menu .pname{font-family:var(--condensed);font-size:.72rem;color:var(--ink-soft);}
+
+.form-field{margin-bottom:12px;}
+.form-field label{display:block;font-family:var(--condensed);font-size:.74rem;color:var(--ink-soft);margin-bottom:5px;}
+.form-field input{width:100%;padding:9px 11px;border:1px solid var(--border);border-radius:9px;
+  font-family:var(--display);font-size:.88rem;background:var(--bg);color:var(--ink);}
+.form-field input:focus{outline:none;border-color:var(--blue);background:#fff;}
+.form-error{font-family:var(--condensed);font-size:.76rem;color:var(--red);margin:-4px 0 10px;}
 
 .status-cluster{display:flex;align-items:center;gap:18px;}
 .status-item{display:flex;align-items:center;gap:6px;font-family:var(--condensed);font-size:.76rem;color:var(--ink-soft);}
@@ -426,6 +435,26 @@ button{font-family:inherit;}
   </div>
 </div>
 
+<div class="modal" id="addPatientModal" style="width:360px;">
+  <button class="modal-close" id="closeAddPatient"><svg class="icon" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+  <h4>Add Patient</h4>
+  <p class="sub">Basic details — saved in this browser only</p>
+  <div class="form-field">
+    <label>Patient ID</label>
+    <input type="text" id="apId" placeholder="e.g. NER-5210">
+  </div>
+  <div class="form-field">
+    <label>Name</label>
+    <input type="text" id="apName" placeholder="e.g. K. Sharma">
+  </div>
+  <div class="form-field">
+    <label>Age</label>
+    <input type="number" id="apAge" placeholder="e.g. 55" min="1" max="120">
+  </div>
+  <div class="form-error" id="apError" style="display:none;"></div>
+  <button class="abtn primary" id="apSubmit" style="width:100%;justify-content:center;">Add Patient</button>
+</div>
+
 <div class="sidepanel" id="historyPanel">
   <div class="sp-head">
     <h4>Patient History</h4>
@@ -629,7 +658,7 @@ function renderAsymRing(val){
 function renderTrend(sessions){
   const svg=document.getElementById('trendSvg');
   const W=300,H=90,padL=26,padR=10,padT=14,padB=18;
-  const x=i=>padL+(i/(sessions.length-1))*(W-padL-padR);
+  const x=i=> sessions.length<=1 ? padL : padL+(i/(sessions.length-1))*(W-padL-padR);
   const y=v=>H-padB-(v/100)*(H-padT-padB);
   const pts=sessions.map((s,i)=>({x:x(i),y:y(s.risk)}));
   const d=catmull(pts);
@@ -651,7 +680,7 @@ function renderSessionList(sessions){
 function renderAll(){
   const p=PATIENTS[currentId];
   document.getElementById('patientId').textContent=currentId;
-  document.getElementById('patientName').textContent=`${p.name} · ${p.age}`;
+  document.getElementById('patientName').textContent= p.age? `${p.name} · ${p.age}` : p.name;
   document.getElementById('patientAvatar').textContent=p.initials;
   document.getElementById('riskNum').textContent=p.risk;
   document.getElementById('riskNum').style.color= p.risk<35?'#2F8F7E':p.risk<70?'#B4790E':'#B03A36';
@@ -676,17 +705,22 @@ function renderAll(){
 function buildPatientMenu(){
   const menu=document.getElementById('patientMenu');
   menu.innerHTML=Object.entries(PATIENTS).map(([id,p])=>`
-    <button data-id="${id}">
+    <button class="patient-option" data-id="${id}">
       <div class="patient-avatar" style="width:24px;height:24px;font-size:.62rem">${p.initials}</div>
-      <div><div class="pid">${id}</div><div class="pname">${p.name} · ${p.age}</div></div>
-    </button>`).join('');
-  menu.querySelectorAll('button').forEach(btn=>{
+      <div><div class="pid">${id}</div><div class="pname">${p.name}${p.age?' · '+p.age:''}</div></div>
+    </button>`).join('') + `<button class="add-trigger" id="addPatientTrigger">+ Add new patient</button>`;
+  menu.querySelectorAll('button.patient-option').forEach(btn=>{
     btn.addEventListener('click',()=>{
       currentId=btn.dataset.id;
       document.getElementById('patientMenu').classList.remove('open');
+      savePatients();
       renderAll();
       showToast(`Switched to ${currentId}`);
     });
+  });
+  document.getElementById('addPatientTrigger').addEventListener('click',()=>{
+    document.getElementById('patientMenu').classList.remove('open');
+    openAddPatientModal();
   });
 }
 
@@ -758,6 +792,7 @@ document.getElementById('btnSync').addEventListener('click',function(){
   setTimeout(()=>{
     const n=p.offline;
     p.offline=0;
+    savePatients();
     icon.classList.remove('spin');
     label.textContent='Synchronize Now';
     sub.textContent='(Offline Data: 0 Reports)';
@@ -916,10 +951,70 @@ function applyNewSession(){
   const today=new Date();
   const label=today.toLocaleDateString('en-US',{month:'short',day:'2-digit'});
   p.sessions.push({date:label,risk:p.risk});
+  savePatients();
   renderAll();
 }
 
-scrim.addEventListener('click',()=>{closeModal();closeHistory();});
+/* ---------------- local persistence ---------------- */
+function savePatients(){
+  try{
+    localStorage.setItem('arthroscreen_patients',JSON.stringify(PATIENTS));
+    localStorage.setItem('arthroscreen_current_id',currentId);
+  }catch(e){ /* storage unavailable (private browsing, quota, etc.) — app still works, just won't persist */ }
+}
+function loadPatients(){
+  try{
+    const raw=localStorage.getItem('arthroscreen_patients');
+    if(raw){
+      const saved=JSON.parse(raw);
+      Object.keys(saved).forEach(id=>{ PATIENTS[id]=saved[id]; });
+    }
+    const savedCurrent=localStorage.getItem('arthroscreen_current_id');
+    if(savedCurrent && PATIENTS[savedCurrent]) currentId=savedCurrent;
+  }catch(e){ /* corrupt or unavailable storage — fall back to the two built-in patients */ }
+}
+
+/* ---------------- add patient ---------------- */
+function openAddPatientModal(){
+  document.getElementById('apId').value='';
+  document.getElementById('apName').value='';
+  document.getElementById('apAge').value='';
+  document.getElementById('apError').style.display='none';
+  document.getElementById('addPatientModal').classList.add('open');
+  scrim.classList.add('open');
+}
+function closeAddPatientModal(){
+  document.getElementById('addPatientModal').classList.remove('open');
+  if(!modal.classList.contains('open') && !historyPanel.classList.contains('open')) scrim.classList.remove('open');
+}
+document.getElementById('closeAddPatient').addEventListener('click',closeAddPatientModal);
+document.getElementById('apSubmit').addEventListener('click',()=>{
+  const id=document.getElementById('apId').value.trim().toUpperCase();
+  const name=document.getElementById('apName').value.trim();
+  const ageRaw=document.getElementById('apAge').value.trim();
+  const err=document.getElementById('apError');
+  if(!id||!name){ err.textContent='Patient ID and name are required.'; err.style.display='block'; return; }
+  if(PATIENTS[id]){ err.textContent='A patient with that ID already exists.'; err.style.display='block'; return; }
+  const age=ageRaw? Math.max(1,Math.min(120,parseInt(ageRaw,10))) : null;
+  const initials=name.split(/\s+/).map(w=>w[0]).join('').slice(0,2).toUpperCase()||'??';
+  const today=new Date();
+  const label=today.toLocaleDateString('en-US',{month:'short',day:'2-digit'});
+  PATIENTS[id]={
+    name, age, initials,
+    risk:20, romPeakL:108, romPeakT_L:50, romPeakR:110, romPeakT_R:50,
+    events:2, gaitAsym:6, offline:0,
+    hotspotsL:[{cx:50,cy:178,r:16,i:.22},{cx:38,cy:110,r:14,i:.18},{cx:52,cy:55,r:13,i:.15}],
+    hotspotsR:[{cx:50,cy:178,r:16,i:.2},{cx:50,cy:110,r:14,i:.17},{cx:50,cy:55,r:13,i:.15}],
+    sessions:[{date:label,risk:20}]
+  };
+  currentId=id;
+  savePatients();
+  closeAddPatientModal();
+  renderAll();
+  showToast(`Added patient ${id} — baseline reading only, run a recording for real data`);
+});
+
+scrim.addEventListener('click',()=>{closeModal();closeHistory();closeAddPatientModal();});
 
 /* ---------------- packet feed: fake BLE now, real BLE later, same receiving code ---------------- */
 const FEATURE_ORDER=['band_energy','spectral_centroid','click_count','ROM','peak_velocity','time_to_peak','peak_load','load_rate','center_of_pressure'];
@@ -1010,6 +1105,7 @@ document.getElementById('btnConnectBle').addEventListener('click',connectBluetoo
 startSimulatedFeed();
 
 /* ---------------- init ---------------- */
+loadPatients();
 renderAll();
 </script>
 </body>
