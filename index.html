@@ -1,0 +1,1016 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ArthroScreen — Knee OA Screening</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#1A2438;
+  --ink-soft:#5B6779;
+  --blue:#1F4E8C;
+  --blue-soft:#EAF1F9;
+  --orange:#B5651D;
+  --orange-soft:#FBEFE1;
+  --teal:#2F8F7E;
+  --amber:#D9A23B;
+  --red:#C0433F;
+  --bg:#F3F6FA;
+  --surface:#FFFFFF;
+  --border:#E1E7F0;
+  --radius:16px;
+  --radius-sm:9px;
+  --shadow:0 1px 2px rgba(26,36,56,.04), 0 10px 28px -14px rgba(26,36,56,.16);
+  --display:'IBM Plex Sans',sans-serif;
+  --condensed:'IBM Plex Sans Condensed',sans-serif;
+  --mono:'IBM Plex Mono',monospace;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  background:var(--bg);
+  color:var(--ink);
+  font-family:var(--display);
+  -webkit-font-smoothing:antialiased;
+  min-height:100vh;
+}
+button{font-family:inherit;}
+.icon{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;display:block;}
+
+/* ---------------- topbar ---------------- */
+.topbar{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:13px 28px;background:var(--surface);
+  border-bottom:1px solid var(--border);
+  position:sticky;top:0;z-index:30;
+}
+.brand{display:flex;align-items:center;gap:10px;}
+.brand-mark{width:34px;height:34px;flex-shrink:0;}
+.brand-text .name{font-weight:600;font-size:1.14rem;letter-spacing:-.01em;line-height:1.1;}
+.brand-text .tag{font-family:var(--condensed);font-size:.73rem;color:var(--ink-soft);margin-top:1px;}
+
+.top-mid{position:relative;}
+.patient-pill{
+  display:flex;align-items:center;gap:9px;padding:6px 12px 6px 6px;
+  border:1px solid var(--border);border-radius:999px;background:var(--bg);
+  cursor:pointer;user-select:none;
+}
+.patient-pill:hover{border-color:#c7d2e0;}
+.patient-avatar{width:26px;height:26px;border-radius:50%;background:var(--blue-soft);color:var(--blue);
+  display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:.68rem;font-weight:600;}
+.patient-pill .pid{font-family:var(--mono);font-size:.8rem;font-weight:600;}
+.patient-pill .pname{font-family:var(--condensed);font-size:.74rem;color:var(--ink-soft);}
+.patient-pill svg{width:14px;height:14px;color:var(--ink-soft);}
+
+.patient-menu{
+  position:absolute;top:calc(100% + 8px);left:0;min-width:230px;
+  background:var(--surface);border:1px solid var(--border);border-radius:12px;
+  box-shadow:var(--shadow);padding:6px;display:none;z-index:40;
+}
+.patient-menu.open{display:block;}
+.patient-menu button{
+  width:100%;display:flex;align-items:center;gap:10px;padding:9px 10px;
+  border:none;background:none;border-radius:8px;cursor:pointer;text-align:left;
+}
+.patient-menu button:hover{background:var(--bg);}
+.patient-menu .pid{font-family:var(--mono);font-size:.79rem;font-weight:600;}
+.patient-menu .pname{font-family:var(--condensed);font-size:.72rem;color:var(--ink-soft);}
+
+.status-cluster{display:flex;align-items:center;gap:18px;}
+.status-item{display:flex;align-items:center;gap:6px;font-family:var(--condensed);font-size:.76rem;color:var(--ink-soft);}
+.ble-dot{width:8px;height:8px;border-radius:50%;background:currentColor;color:#8891A3;position:relative;flex-shrink:0;}
+.ble-dot.live{color:var(--teal);}
+.ble-dot.err{color:var(--red);}
+.ble-dot::after{content:'';position:absolute;inset:-4px;border-radius:50%;background:currentColor;opacity:.35;
+  animation:pulse 2.2s ease-out infinite;}
+@keyframes pulse{0%{transform:scale(.6);opacity:.5;}100%{transform:scale(2.1);opacity:0;}}
+.icon-btn{width:34px;height:34px;border-radius:50%;border:1px solid transparent;background:none;
+  display:flex;align-items:center;justify-content:center;color:var(--ink-soft);cursor:pointer;}
+.icon-btn:hover{background:var(--bg);color:var(--ink);}
+.avatar{width:32px;height:32px;border-radius:50%;background:var(--ink);color:#fff;display:flex;align-items:center;
+  justify-content:center;font-family:var(--mono);font-size:.72rem;font-weight:600;}
+
+/* ---------------- layout ---------------- */
+.dashboard{max-width:1180px;margin:0 auto;padding:26px 28px 130px;}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+@media (max-width:880px){.grid{grid-template-columns:1fr;}}
+
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+  box-shadow:var(--shadow);padding:20px 22px 22px;transition:opacity .25s ease;}
+.card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+.card-title{display:flex;align-items:center;gap:9px;}
+.card-title h3{margin:0;font-size:.98rem;font-weight:600;}
+.card-title .ci{width:19px;height:19px;color:var(--blue);flex-shrink:0;}
+.card-head .actions{display:flex;align-items:center;gap:4px;color:var(--ink-soft);}
+.head-btn{width:26px;height:26px;border-radius:6px;border:none;background:none;color:inherit;
+  display:flex;align-items:center;justify-content:center;cursor:pointer;}
+.head-btn:hover{background:var(--bg);}
+
+/* ---- risk card ---- */
+.risk-body{display:flex;flex-direction:column;align-items:center;padding-top:2px;}
+.gauge-num{font-family:var(--mono);font-weight:600;font-size:2.7rem;margin-top:-58px;color:var(--orange);}
+.risk-label{font-size:1.02rem;font-weight:600;margin-top:2px;}
+.risk-note{font-family:var(--condensed);font-size:.82rem;color:var(--ink-soft);margin-top:2px;}
+.risk-scale{display:flex;gap:14px;margin-top:16px;}
+.risk-scale span{display:flex;align-items:center;gap:5px;font-family:var(--condensed);font-size:.71rem;color:var(--ink-soft);}
+.risk-scale i{width:8px;height:8px;border-radius:50%;display:inline-block;}
+.live-badge{display:inline-flex;align-items:center;gap:5px;font-family:var(--condensed);font-size:.68rem;font-weight:600;
+  color:#B03A36;background:#FBEAEA;padding:3px 9px;border-radius:999px;letter-spacing:.02em;margin-top:8px;}
+.live-badge i{width:6px;height:6px;border-radius:50%;background:#B03A36;animation:blink 1s ease-in-out infinite;}
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:.25;}}
+.card.live-capturing{border-color:var(--blue);box-shadow:0 0 0 3px rgba(31,78,140,.14), var(--shadow);}
+
+/* ---- rom card ---- */
+.legend{display:flex;gap:6px;}
+.legend button{all:unset;display:flex;align-items:center;gap:6px;font-family:var(--condensed);font-size:.75rem;
+  color:var(--ink-soft);cursor:pointer;padding:4px 8px;border-radius:7px;}
+.legend button:hover{background:var(--bg);}
+.legend button.off{opacity:.4;text-decoration:line-through;}
+.legend i{width:11px;height:3px;border-radius:2px;display:inline-block;}
+.rom-pt{cursor:pointer;}
+.chart-tooltip{position:fixed;background:var(--ink);color:#fff;font-family:var(--mono);font-size:.72rem;
+  padding:6px 9px;border-radius:7px;pointer-events:none;opacity:0;transition:opacity .12s ease;z-index:90;white-space:nowrap;}
+.chart-tooltip.show{opacity:1;}
+
+/* ---- explanation panels ---- */
+.explain-inline{margin-top:14px;padding-top:14px;border-top:1px solid var(--border);width:100%;}
+.explain-inline ul{margin:0;padding-left:18px;font-family:var(--condensed);font-size:.79rem;color:var(--ink);line-height:1.55;}
+.explain-inline ul li{margin-bottom:6px;}
+.explain-inline p{margin:8px 0 0;font-size:.74rem;color:var(--ink-soft);line-height:1.4;}
+.results-score{font-family:var(--mono);font-weight:600;font-size:2.3rem;text-align:center;margin:4px 0 0;}
+.results-label{font-size:1rem;font-weight:600;text-align:center;margin:2px 0 14px;}
+.explain-list{margin:0 0 10px;padding-left:18px;font-family:var(--condensed);font-size:.81rem;color:var(--ink);line-height:1.55;}
+.explain-list li{margin-bottom:8px;}
+.explain-note{font-family:var(--condensed);font-size:.78rem;color:var(--ink-soft);border-top:1px solid var(--border);
+  padding-top:10px;line-height:1.42;margin:0;}
+
+/* ---- live feed card ---- */
+.card.wide{grid-column:1 / -1;}
+.feed-pill{font-family:var(--condensed);font-size:.72rem;padding:4px 10px;border-radius:999px;background:var(--blue-soft);color:var(--blue);}
+.feed-pill.live{background:#EAF7F2;color:#2F8F7E;}
+.feed-pill.err{background:#FBEAEA;color:#B03A36;}
+.feed-log{background:#0F1626;border-radius:10px;padding:10px 14px;font-family:var(--mono);font-size:.72rem;
+  color:#8FA0BE;height:118px;overflow-y:auto;line-height:1.75;}
+.feed-log div:last-child{color:#fff;}
+.feed-note{font-family:var(--condensed);font-size:.72rem;color:var(--ink-soft);margin:10px 2px 0;line-height:1.45;}
+
+/* ---- acoustic card ---- */
+.acoustic-row{display:flex;align-items:center;gap:18px;}
+.acoustic-row svg{flex:1;}
+.event-count{text-align:center;flex-shrink:0;width:78px;}
+.event-count .n{font-family:var(--mono);font-weight:600;font-size:1.9rem;color:var(--ink);}
+.event-count .l{font-family:var(--condensed);font-size:.72rem;color:var(--ink-soft);margin-top:1px;}
+
+/* ---- gait card ---- */
+.gait-row{display:flex;align-items:flex-end;justify-content:space-around;gap:8px;}
+.foot-block{text-align:center;}
+.foot-tag{display:inline-flex;align-items:center;gap:6px;font-family:var(--condensed);font-size:.75rem;
+  color:var(--ink-soft);margin-top:8px;}
+.foot-tag i{width:9px;height:9px;border-radius:50%;display:inline-block;}
+.asym-index{display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;}
+.asym-index .n{font-family:var(--mono);font-weight:600;font-size:1.3rem;}
+.asym-index .l{font-family:var(--condensed);font-size:.65rem;color:var(--ink-soft);text-align:center;max-width:70px;line-height:1.25;margin-top:4px;}
+
+/* ---------------- action bar ---------------- */
+.actionbar{
+  position:fixed;left:0;right:0;bottom:0;z-index:20;
+  background:rgba(255,255,255,.9);backdrop-filter:blur(10px);
+  border-top:1px solid var(--border);padding:14px 28px;
+  display:flex;justify-content:center;gap:14px;
+}
+.abtn{
+  display:flex;align-items:center;gap:9px;padding:12px 20px;border-radius:11px;border:1px solid transparent;
+  font-family:var(--display);font-weight:600;font-size:.88rem;cursor:pointer;transition:transform .12s ease,box-shadow .12s ease;
+}
+.abtn:active{transform:scale(.98);}
+.abtn.primary{background:var(--blue);color:#fff;}
+.abtn.primary:hover{box-shadow:0 6px 18px -6px rgba(31,78,140,.55);}
+.abtn.secondary{background:var(--surface);color:var(--ink);border-color:var(--border);}
+.abtn.secondary:hover{border-color:#c7d2e0;}
+.abtn.ghost{background:none;color:var(--ink-soft);border-color:transparent;}
+.abtn.ghost:hover{background:var(--bg);color:var(--ink);}
+.abtn small{font-family:var(--condensed);font-weight:500;opacity:.85;}
+.spin{animation:spin 1s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* ---------------- overlays ---------------- */
+.scrim{position:fixed;inset:0;background:rgba(20,26,40,.42);opacity:0;pointer-events:none;transition:opacity .2s ease;z-index:50;}
+.scrim.open{opacity:1;pointer-events:auto;}
+
+.modal{
+  position:fixed;left:50%;top:50%;transform:translate(-50%,-46%);width:420px;max-width:90vw;max-height:82vh;overflow-y:auto;
+  background:var(--surface);border-radius:18px;box-shadow:0 30px 70px -20px rgba(15,20,35,.4);
+  padding:26px 26px 22px;z-index:60;opacity:0;pointer-events:none;transition:opacity .2s ease, transform .2s ease;
+}
+.modal.open{opacity:1;pointer-events:auto;transform:translate(-50%,-50%);}
+.modal h4{margin:0 0 4px;font-size:1.05rem;}
+.modal p.sub{margin:0 0 20px;font-family:var(--condensed);font-size:.82rem;color:var(--ink-soft);}
+.rep-row{display:flex;gap:10px;margin-bottom:22px;}
+.rep-chip{flex:1;height:64px;border-radius:12px;background:var(--bg);border:1px solid var(--border);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;transition:.25s ease;}
+.rep-chip .rn{font-family:var(--mono);font-size:.7rem;color:var(--ink-soft);}
+.rep-chip .rs{width:20px;height:20px;border-radius:50%;border:2px solid var(--border);}
+.rep-chip.active{background:var(--blue-soft);border-color:var(--blue);}
+.rep-chip.active .rs{border-color:var(--blue);border-top-color:transparent;animation:spin .8s linear infinite;}
+.rep-chip.done{background:#EAF7F2;border-color:var(--teal);}
+.rep-chip.done .rs{border:none;background:var(--teal);}
+.modal-status{font-family:var(--condensed);font-size:.82rem;color:var(--ink-soft);text-align:center;min-height:18px;}
+.modal-close{position:absolute;top:16px;right:16px;width:28px;height:28px;border-radius:50%;border:none;
+  background:none;color:var(--ink-soft);cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.modal-close:hover{background:var(--bg);}
+
+.sidepanel{
+  position:fixed;top:0;right:0;bottom:0;width:360px;max-width:90vw;background:var(--surface);
+  box-shadow:-16px 0 40px -20px rgba(15,20,35,.35);z-index:60;transform:translateX(100%);
+  transition:transform .28s cubic-bezier(.2,.8,.2,1);display:flex;flex-direction:column;
+}
+.sidepanel.open{transform:translateX(0);}
+.sp-head{padding:20px 22px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.sp-head h4{margin:0;font-size:1.02rem;}
+.sp-body{padding:18px 22px;overflow-y:auto;flex:1;}
+.trend-wrap{margin-bottom:20px;}
+.session-item{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border);}
+.session-item:last-child{border-bottom:none;}
+.session-item .date{font-family:var(--condensed);font-size:.85rem;}
+.session-item .date small{display:block;font-size:.7rem;color:var(--ink-soft);margin-top:1px;}
+.risk-badge{font-family:var(--mono);font-weight:600;font-size:.82rem;padding:4px 10px;border-radius:999px;}
+
+.toast{
+  position:fixed;bottom:96px;left:50%;transform:translateX(-50%) translateY(12px);
+  background:var(--ink);color:#fff;padding:11px 18px;border-radius:10px;font-family:var(--condensed);
+  font-size:.83rem;box-shadow:0 14px 30px -10px rgba(0,0,0,.35);opacity:0;pointer-events:none;
+  transition:opacity .25s ease, transform .25s ease;z-index:70;display:flex;align-items:center;gap:8px;
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+.toast svg{width:16px;height:16px;color:var(--teal);flex-shrink:0;}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">
+    <svg class="brand-mark" viewBox="0 0 34 34" fill="none">
+      <circle cx="17" cy="17" r="15.5" stroke="#1F4E8C" stroke-width="2"/>
+      <path d="M8 21a9 9 0 0 1 18 0" stroke="#B5651D" stroke-width="2" stroke-linecap="round"/>
+      <circle cx="17" cy="17" r="2.6" fill="#1A2438"/>
+    </svg>
+    <div class="brand-text">
+      <div class="name">ArthroScreen</div>
+      <div class="tag">Knee OA screening</div>
+    </div>
+  </div>
+
+  <div class="top-mid">
+    <div class="patient-pill" id="patientPill">
+      <div class="patient-avatar" id="patientAvatar">RI</div>
+      <div>
+        <div class="pid" id="patientId">NER-4029</div>
+        <div class="pname" id="patientName">R. Iyer · 61</div>
+      </div>
+      <svg viewBox="0 0 24 24" class="icon"><path d="M6 9l6 6 6-6"/></svg>
+    </div>
+    <div class="patient-menu" id="patientMenu"></div>
+  </div>
+
+  <div class="status-cluster">
+    <div class="status-item"><span class="ble-dot" id="bleDot"></span> <span id="bleText">Simulated feed</span></div>
+    <div class="status-item" id="syncStatus">
+      <svg class="icon" viewBox="0 0 24 24" style="width:14px;height:14px;color:var(--ink-soft)"><path d="M3 12a9 9 0 0 1 15-6.7M21 12a9 9 0 0 1-15 6.7M3 5v5h5M21 19v-5h-5"/></svg>
+      <span id="syncLabel">Offline: 3</span>
+    </div>
+    <button class="icon-btn"><svg class="icon" viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg></button>
+    <div class="avatar">DR</div>
+  </div>
+</div>
+
+<div class="dashboard">
+  <div class="grid">
+
+    <!-- RISK SCORE -->
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title">
+          <svg class="ci" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 2a10 10 0 1 0 10 10"/><path d="M12 8v4l3 2"/></svg>
+          <h3>Risk Score</h3>
+        </div>
+        <div class="actions"><button class="head-btn" id="riskInfoBtn" title="Why this score"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 16v-5M12 8h.01"/></svg></button></div>
+      </div>
+      <div class="risk-body">
+        <svg id="gaugeSvg" viewBox="0 0 240 140" width="240" height="140"></svg>
+        <div class="gauge-num" id="riskNum">72</div>
+        <div class="risk-label" id="riskLabel">Moderate Risk</div>
+        <div class="risk-note" id="riskNote">Referral recommended</div>
+        <span class="live-badge" id="liveBadge" style="display:none;"><i></i>LIVE</span>
+        <div class="risk-scale">
+          <span><i style="background:var(--teal)"></i>Low</span>
+          <span><i style="background:var(--amber)"></i>Moderate</span>
+          <span><i style="background:var(--red)"></i>High</span>
+        </div>
+        <div class="explain-inline" id="riskExplain" style="display:none;"></div>
+      </div>
+    </div>
+
+    <!-- ROM -->
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title">
+          <svg class="ci" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 20c4-10 8-14 16-16"/><path d="M14 4h6v6"/></svg>
+          <h3>Knee Range of Motion</h3>
+        </div>
+        <div class="legend" id="romLegend">
+          <button data-series="left"><i style="background:var(--blue)"></i>Left</button>
+          <button data-series="right"><i style="background:var(--orange)"></i>Right</button>
+        </div>
+      </div>
+      <svg id="romSvg" viewBox="0 0 520 220" width="100%" height="220"></svg>
+      <p style="font-family:var(--condensed);font-size:.71rem;color:var(--ink-soft);margin:6px 2px 0;">Tap a point on the chart for its exact value · tap Left/Right to hide a line</p>
+    </div>
+
+    <!-- ACOUSTIC -->
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title">
+          <svg class="ci" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 12v0M7 8v8M11 4v16M15 8v8M19 12v0"/></svg>
+          <h3>Knee Acoustic Emissions</h3>
+        </div>
+      </div>
+      <div class="acoustic-row">
+        <svg id="waveSvg" viewBox="0 0 480 90" height="90"></svg>
+        <div class="event-count">
+          <div class="n" id="eventNum">14</div>
+          <div class="l">Events flagged</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- GAIT -->
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title">
+          <svg class="ci" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M13 4a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3z"/><path d="M8 21l1.5-6-2-2 .5-4 3-2 2 2 3-1M10 15l3 2 2 4"/></svg>
+          <h3>Gait Asymmetry Analysis</h3>
+        </div>
+      </div>
+      <div class="gait-row">
+        <div class="foot-block">
+          <svg id="footLeft" viewBox="0 0 100 220" width="70" height="150"></svg>
+          <div class="foot-tag"><i style="background:var(--blue)"></i>Left</div>
+        </div>
+        <div class="asym-index">
+          <svg width="72" height="72" viewBox="0 0 72 72" id="asymRing"></svg>
+          <div class="l">Asymmetry index</div>
+        </div>
+        <div class="foot-block">
+          <svg id="footRight" viewBox="0 0 100 220" width="70" height="150"></svg>
+          <div class="foot-tag"><i style="background:var(--orange)"></i>Right</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- LIVE FEED -->
+    <div class="card wide">
+      <div class="card-head">
+        <div class="card-title">
+          <svg class="ci" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M6.5 6.5l11 11L12 22V2l5.5 5.5-11 11"/></svg>
+          <h3>Live Sensor Feed</h3>
+        </div>
+        <div class="actions" style="gap:10px;">
+          <span class="feed-pill" id="feedPill">Simulated feed</span>
+          <button class="abtn secondary" id="btnConnectBle" style="padding:7px 14px;font-size:.78rem;">Connect ESP32</button>
+        </div>
+      </div>
+      <div class="feed-log" id="feedLog"></div>
+      <p class="feed-note">Packets are simulated on a timer right now, using the same 9-feature schema the ESP32 will send (band energy, spectral centroid, click count, ROM, peak velocity, time-to-peak, peak load, load rate, center of pressure). "Connect ESP32" pairs over Web Bluetooth for real — once the firmware exposes the feature characteristic this switches to live packets automatically, and nothing else in the app changes. Note: Web Bluetooth works in Chrome/Edge but is not available on iOS Safari.</p>
+    </div>
+
+  </div>
+</div>
+
+<div class="chart-tooltip" id="chartTooltip"></div>
+
+<div class="actionbar">
+  <button class="abtn primary" id="btnRecord">
+    <svg class="icon" viewBox="0 0 24 24" stroke="#fff"><path d="M8 5v14l11-7z"/></svg>
+    Start New Recording
+  </button>
+  <button class="abtn secondary" id="btnSync">
+    <svg class="icon" viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 15-6.7M21 12a9 9 0 0 1-15 6.7M3 5v5h5M21 19v-5h-5"/></svg>
+    <span id="syncBtnLabel">Synchronize Now</span><small id="syncBtnSub">(Offline Data: 3 Reports)</small>
+  </button>
+  <button class="abtn ghost" id="btnHistory">
+    <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>
+    View Patient History
+  </button>
+</div>
+
+<div class="scrim" id="scrim"></div>
+
+<div class="modal" id="recordModal">
+  <button class="modal-close" id="closeModal"><svg class="icon" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+  <div id="captureView">
+    <h4>New Recording</h4>
+    <p class="sub">Sit-to-stand test · 3 reps · edge model runs on-device</p>
+    <div class="rep-row" id="repRow"></div>
+    <div class="modal-status" id="modalStatus">Starting capture…</div>
+  </div>
+  <div id="resultsView" style="display:none;">
+    <h4>Recording analyzed</h4>
+    <p class="sub">On-device model output for this session</p>
+    <div class="results-score" id="resultsScore">72</div>
+    <div class="results-label" id="resultsLabel">Moderate Risk</div>
+    <ul class="explain-list" id="explainList"></ul>
+    <p class="explain-note" id="explainNote"></p>
+    <button class="abtn primary" id="resultsDone" style="width:100%;justify-content:center;margin-top:16px;">Done</button>
+  </div>
+</div>
+
+<div class="sidepanel" id="historyPanel">
+  <div class="sp-head">
+    <h4>Patient History</h4>
+    <button class="icon-btn" id="closeHistory"><svg class="icon" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+  </div>
+  <div class="sp-body">
+    <div class="trend-wrap">
+      <svg id="trendSvg" viewBox="0 0 300 90" width="100%" height="90"></svg>
+    </div>
+    <div id="sessionList"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg><span id="toastText"></span></div>
+
+<script>
+/* ---------------- data ---------------- */
+const PATIENTS = {
+  'NER-4029': {
+    name:'R. Iyer', age:61, initials:'RI',
+    risk:72, romPeakL:84, romPeakT_L:52, romPeakR:104, romPeakT_R:48,
+    events:21, gaitAsym:27, offline:3,
+    hotspotsL:[{cx:50,cy:178,r:26,i:.92},{cx:38,cy:110,r:20,i:.62},{cx:52,cy:55,r:18,i:.35}],
+    hotspotsR:[{cx:50,cy:178,r:22,i:.4},{cx:50,cy:110,r:18,i:.28},{cx:50,cy:55,r:16,i:.22}],
+    sessions:[{date:'Jul 14',risk:61},{date:'Jul 28',risk:65},{date:'Aug 11',risk:69},{date:'Aug 25',risk:70},{date:'Sep 08',risk:72}]
+  },
+  'NER-3157': {
+    name:'A. Fernandes', age:47, initials:'AF',
+    risk:38, romPeakL:101, romPeakT_L:50, romPeakR:106, romPeakT_R:50,
+    events:6, gaitAsym:9, offline:1,
+    hotspotsL:[{cx:50,cy:178,r:18,i:.32},{cx:40,cy:110,r:16,i:.24},{cx:52,cy:55,r:14,i:.2}],
+    hotspotsR:[{cx:50,cy:178,r:17,i:.3},{cx:50,cy:110,r:15,i:.22},{cx:50,cy:55,r:14,i:.2}],
+    sessions:[{date:'Aug 02',risk:30},{date:'Aug 16',risk:33},{date:'Aug 30',risk:35},{date:'Sep 06',risk:38}]
+  }
+};
+let currentId = 'NER-4029';
+
+/* ---------------- helpers ---------------- */
+function pt(cx,cy,r,ang){const m=((180-ang)*Math.PI)/180;return{x:cx+r*Math.cos(m),y:cy-r*Math.sin(m)};}
+function arcPath(cx,cy,r,a0,a1){const s=pt(cx,cy,r,a1),e=pt(cx,cy,r,a0);const large=a1-a0<=180?0:1;
+  return `M${s.x} ${s.y} A${r} ${r} 0 ${large} 0 ${e.x} ${e.y}`;}
+function catmull(points){let d='';for(let i=0;i<points.length-1;i++){
+    const p0=points[i-1]||points[0],p1=points[i],p2=points[i+1],p3=points[i+2]||p2;
+    const c1x=p1.x+(p2.x-p0.x)/6, c1y=p1.y+(p2.y-p0.y)/6;
+    const c2x=p2.x-(p3.x-p1.x)/6, c2y=p2.y-(p3.y-p1.y)/6;
+    if(i===0)d+=`M${p1.x},${p1.y} `;
+    d+=`C${c1x},${c1y} ${c2x},${c2y} ${p2.x},${p2.y} `;
+  }return d;}
+function pressureColor(i){
+  const stops=[[0,[47,111,191]],[.45,[47,158,111]],[.72,[217,162,59]],[1,[192,67,63]]];
+  for(let k=0;k<stops.length-1;k++){
+    const[a,ca]=stops[k],[b,cb]=stops[k+1];
+    if(i>=a&&i<=b){const t=(i-a)/(b-a);
+      const c=ca.map((v,idx)=>Math.round(v+(cb[idx]-v)*t));
+      return `rgb(${c[0]},${c[1]},${c[2]})`;}
+  }return `rgb(${stops[stops.length-1][1].join(',')})`;
+}
+function riskColor(v){return v<40?'var(--teal)':v<70?'var(--amber)':'var(--red)';}
+function riskLabelFor(v){return v<35?['Low Risk','No referral needed']:v<70?['Moderate Risk','Monitor & retest in 4 weeks']:['Moderate–High Risk','Referral recommended'];}
+
+function explainRisk(p){
+  const leftIsRestricted = p.romPeakL<=p.romPeakR;
+  const restrictedSide = leftIsRestricted?'Left':'Right';
+  const healthySide = leftIsRestricted?'Right':'Left';
+  const restrictedVal = leftIsRestricted?p.romPeakL:p.romPeakR;
+  const healthyVal = leftIsRestricted?p.romPeakR:p.romPeakL;
+
+  const factors=[
+    {weight:Math.max(0,110-restrictedVal),
+     text:`${restrictedSide} knee reached only ${Math.round(restrictedVal)}° of flexion during the sit-to-stand reps — well short of the ~110° typical of a pain-free knee. This was the largest single driver of the score.`},
+    {weight:p.events*2.6,
+     text:`${p.events} acoustic click events were picked up by the bell mic across the reps, consistent with crepitus (joint clicking/grinding often present in early OA).`},
+    {weight:p.gaitAsym*2.1,
+     text:`The pressure insoles show a ${p.gaitAsym}% load asymmetry between the feet, with extra loading on the ${restrictedSide.toLowerCase()} side — a common compensation pattern when one knee is painful.`}
+  ].sort((a,b)=>b.weight-a.weight);
+
+  const reassuring=`${healthySide} knee moved through a near-normal ${Math.round(healthyVal)}° range with comparatively quiet acoustics, which kept the score from climbing higher.`;
+  return {bullets:factors.map(f=>f.text), reassuring};
+}
+
+/* ---------------- renderers ---------------- */
+function renderGauge(score){
+  const svg=document.getElementById('gaugeSvg');
+  const cx=120,cy=120,r=92;
+  const segs=[[0,33,'#2F8F7E'],[33,66,'#D9A23B'],[66,100,'#C0433F']];
+  let arcs='';
+  segs.forEach(([a,b,col])=>{
+    const a0=(a/100)*180, a1=(b/100)*180;
+    arcs+=`<path d="${arcPath(cx,cy,r,a0,a1)}" stroke="${col}" stroke-width="16" fill="none" stroke-linecap="round"/>`;
+  });
+  svg.innerHTML=arcs;
+}
+
+function romCurve(peak,peakT){
+  const pts=[];
+  for(let t=0;t<=100;t+=5){
+    const val=peak*Math.exp(-Math.pow(t-peakT,2)/(2*Math.pow(26,2)));
+    pts.push({t,angle:Math.max(2,val)});
+  }
+  return pts;
+}
+const romVisible={left:true,right:true};
+function renderROM(p){
+  const svg=document.getElementById('romSvg');
+  const W=520,H=220,padL=38,padR=14,padT=14,padB=30;
+  const x=t=>padL+(t/100)*(W-padL-padR);
+  const y=a=>H-padB-(a/120)*(H-padT-padB);
+  const left=romCurve(p.romPeakL,p.romPeakT_L), right=romCurve(p.romPeakR,p.romPeakT_R);
+  let grid='';
+  [0,20,40,60,80,100,120].forEach(v=>{
+    grid+=`<line x1="${padL}" y1="${y(v)}" x2="${W-padR}" y2="${y(v)}" stroke="#E1E7F0" stroke-width="1"/>
+      <text x="${padL-8}" y="${y(v)+3}" font-family="IBM Plex Mono" font-size="9.5" fill="#8891A3" text-anchor="end">${v}°</text>`;
+  });
+  [0,20,40,60,80,100].forEach(v=>{
+    grid+=`<text x="${x(v)}" y="${H-10}" font-family="IBM Plex Sans Condensed" font-size="10" fill="#8891A3" text-anchor="middle">${v}%</text>`;
+  });
+  const dL=catmull(left.map(pnt=>({x:x(pnt.t),y:y(pnt.angle)})));
+  const dR=catmull(right.map(pnt=>({x:x(pnt.t),y:y(pnt.angle)})));
+  const restrictedSide = p.romPeakL<p.romPeakR? {pts:left,color:'#1F4E8C',val:p.romPeakL} : {pts:right,color:'#B5651D',val:p.romPeakR};
+  const peakPt = restrictedSide.pts.reduce((m,c)=>c.angle>m.angle?c:m, restrictedSide.pts[0]);
+  const cx=x(peakPt.t), cy=y(peakPt.angle);
+  function markers(pts,color,label){
+    return pts.filter(pnt=>pnt.t%10===0).map(pnt=>{
+      const px=x(pnt.t).toFixed(1), py=y(pnt.angle).toFixed(1);
+      return `<circle class="rom-pt" data-side="${label}" data-t="${pnt.t}" data-angle="${Math.round(pnt.angle)}" cx="${px}" cy="${py}" r="9" fill="transparent"/><circle cx="${px}" cy="${py}" r="2.6" fill="${color}" opacity="0.9" pointer-events="none"/>`;
+    }).join('');
+  }
+  svg.innerHTML=`${grid}
+    ${romVisible.left?`<path d="${dL}" stroke="#1F4E8C" stroke-width="2.4" fill="none"/>${markers(left,'#1F4E8C','Left')}`:''}
+    ${romVisible.right?`<path d="${dR}" stroke="#B5651D" stroke-width="2.4" fill="none"/>${markers(right,'#B5651D','Right')}`:''}
+    ${romVisible[leftIsRestrictedKey(p)]?`<circle cx="${cx}" cy="${cy}" r="4.5" fill="#fff" stroke="${restrictedSide.color}" stroke-width="2.4" pointer-events="none"/>
+    <g transform="translate(${Math.min(cx+10,W-160)},${Math.max(cy-42,padT)})">
+      <rect width="150" height="34" rx="7" fill="#1A2438"/>
+      <text x="9" y="14" font-family="IBM Plex Sans Condensed" font-size="9.5" fill="#B9C2D4">Restricted max flexion</text>
+      <text x="9" y="27" font-family="IBM Plex Mono" font-size="11" font-weight="600" fill="#fff">${Math.round(restrictedSide.val)}°</text>
+    </g>`:''}`;
+}
+function leftIsRestrictedKey(p){return p.romPeakL<p.romPeakR?'left':'right';}
+
+function renderWave(p){
+  const svg=document.getElementById('waveSvg');
+  const W=480,H=90,n=100;
+  const eventIdx=new Set();
+  let seed=p.events*7+13;
+  function rnd(){seed=(seed*9301+49297)%233280;return seed/233280;}
+  while(eventIdx.size<p.events){eventIdx.add(2+Math.floor(rnd()*(n-4)));}
+  let bars='';
+  for(let i=0;i<n;i++){
+    const isEvent=eventIdx.has(i);
+    const base=6+rnd()*10;
+    const h=isEvent? 30+rnd()*32 : base;
+    const bw=W/n*0.55;
+    const bx=i*(W/n)+ (W/n-bw)/2;
+    const col=isEvent? '#B5651D':'#1F4E8C';
+    const op=isEvent? 0.95:0.32;
+    bars+=`<rect x="${bx.toFixed(1)}" y="${(H/2-h/2).toFixed(1)}" width="${bw.toFixed(1)}" height="${h.toFixed(1)}" rx="1.4" fill="${col}" opacity="${op}"/>`;
+  }
+  svg.innerHTML=`<line x1="0" y1="${H/2}" x2="${W}" y2="${H/2}" stroke="#E1E7F0" stroke-width="1"/>${bars}`;
+}
+
+function footPath(){
+  return "M50,8 C36,8 27,22 27,42 C27,57 32,66 30,82 C27,103 16,118 16,146 C16,178 27,203 50,212 C73,203 84,178 84,146 C84,118 73,103 70,82 C68,66 73,57 73,42 C73,22 64,8 50,8 Z";
+}
+function toePath(cx,cy,rx,ry){return `M${cx-rx},${cy} a${rx},${ry} 0 1,0 ${rx*2},0 a${rx},${ry} 0 1,0 -${rx*2},0`;}
+function renderFoot(elId,hotspots,mirror){
+  const svg=document.getElementById(elId);
+  const clip='clip-'+elId;
+  let toes='';
+  const toeX=[27,40,54,66,78], toeR=[6,7.5,7,6.2,5];
+  toeX.forEach((tx,i)=>{toes+=`<circle cx="${tx}" cy="${16-i*0.5}" r="${toeR[i]}" fill="#DCE6F2"/>`;});
+  let spots='';
+  hotspots.forEach(h=>{
+    spots+=`<circle cx="${h.cx}" cy="${h.cy}" r="${h.r}" fill="${pressureColor(h.i)}" opacity="0.85" filter="url(#blur-${elId})"/>`;
+  });
+  svg.innerHTML=`
+    <defs>
+      <clipPath id="${clip}"><path d="${footPath()}"/></clipPath>
+      <filter id="blur-${elId}" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="9"/></filter>
+    </defs>
+    <g transform="${mirror?'translate(100,0) scale(-1,1)':''}">
+      <g>${toes}</g>
+      <path d="${footPath()}" fill="#EEF2F8" stroke="#D3DCE8" stroke-width="1.4"/>
+      <g clip-path="url(#${clip})">${spots}</g>
+      <path d="${footPath()}" fill="none" stroke="#D3DCE8" stroke-width="1.4"/>
+    </g>`;
+}
+
+function renderAsymRing(val){
+  const svg=document.getElementById('asymRing');
+  const cx=36,cy=36,r=28,circ=2*Math.PI*r;
+  const off=circ*(1-val/50);
+  const col= val<15? '#2F8F7E' : val<30? '#D9A23B' : '#C0433F';
+  svg.innerHTML=`
+    <circle cx="${cx}" cy="${cy}" r="${r}" stroke="#E1E7F0" stroke-width="6" fill="none"/>
+    <circle cx="${cx}" cy="${cy}" r="${r}" stroke="${col}" stroke-width="6" fill="none"
+      stroke-linecap="round" stroke-dasharray="${circ}" stroke-dashoffset="${off}"
+      transform="rotate(-90 ${cx} ${cy})"/>
+    <text x="${cx}" y="${cy+4}" text-anchor="middle" font-family="IBM Plex Mono" font-weight="600" font-size="13" fill="#1A2438">${val}%</text>`;
+}
+
+function renderTrend(sessions){
+  const svg=document.getElementById('trendSvg');
+  const W=300,H=90,padL=26,padR=10,padT=14,padB=18;
+  const x=i=>padL+(i/(sessions.length-1))*(W-padL-padR);
+  const y=v=>H-padB-(v/100)*(H-padT-padB);
+  const pts=sessions.map((s,i)=>({x:x(i),y:y(s.risk)}));
+  const d=catmull(pts);
+  let dots='';
+  sessions.forEach((s,i)=>{dots+=`<circle cx="${pts[i].x}" cy="${pts[i].y}" r="3.4" fill="${riskColor(s.risk).replace('var(--teal)','#2F8F7E').replace('var(--amber)','#D9A23B').replace('var(--red)','#C0433F')}"/>`;});
+  svg.innerHTML=`<line x1="${padL}" y1="${y(0)}" x2="${W-padR}" y2="${y(0)}" stroke="#E1E7F0"/>
+    <path d="${d}" stroke="#1F4E8C" stroke-width="2" fill="none"/>${dots}`;
+}
+function renderSessionList(sessions){
+  const wrap=document.getElementById('sessionList');
+  wrap.innerHTML=sessions.slice().reverse().map(s=>{
+    const col= s.risk<35? ['#EAF7F2','#2F8F7E'] : s.risk<70? ['#FCF3E3','#B4790E'] : ['#FBEAEA','#B03A36'];
+    return `<div class="session-item"><div class="date">${s.date}<small>Sit-to-stand · 3 reps</small></div>
+      <span class="risk-badge" style="background:${col[0]};color:${col[1]}">${s.risk}</span></div>`;
+  }).join('');
+}
+
+/* ---------------- master render ---------------- */
+function renderAll(){
+  const p=PATIENTS[currentId];
+  document.getElementById('patientId').textContent=currentId;
+  document.getElementById('patientName').textContent=`${p.name} · ${p.age}`;
+  document.getElementById('patientAvatar').textContent=p.initials;
+  document.getElementById('riskNum').textContent=p.risk;
+  document.getElementById('riskNum').style.color= p.risk<35?'#2F8F7E':p.risk<70?'#B4790E':'#B03A36';
+  const [lab,note]=riskLabelFor(p.risk);
+  document.getElementById('riskLabel').textContent=lab;
+  document.getElementById('riskNote').textContent=note;
+  renderGauge(p.risk);
+  renderROM(p);
+  renderWave(p);
+  document.getElementById('eventNum').textContent=p.events;
+  renderFoot('footLeft',p.hotspotsL,false);
+  renderFoot('footRight',p.hotspotsR,true);
+  renderAsymRing(p.gaitAsym);
+  document.getElementById('syncLabel').textContent=`Offline: ${p.offline}`;
+  document.getElementById('syncBtnSub').textContent=`(Offline Data: ${p.offline} Report${p.offline===1?'':'s'})`;
+  renderTrend(p.sessions);
+  renderSessionList(p.sessions);
+  buildPatientMenu();
+  document.getElementById('riskExplain').style.display='none';
+}
+
+function buildPatientMenu(){
+  const menu=document.getElementById('patientMenu');
+  menu.innerHTML=Object.entries(PATIENTS).map(([id,p])=>`
+    <button data-id="${id}">
+      <div class="patient-avatar" style="width:24px;height:24px;font-size:.62rem">${p.initials}</div>
+      <div><div class="pid">${id}</div><div class="pname">${p.name} · ${p.age}</div></div>
+    </button>`).join('');
+  menu.querySelectorAll('button').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      currentId=btn.dataset.id;
+      document.getElementById('patientMenu').classList.remove('open');
+      renderAll();
+      showToast(`Switched to ${currentId}`);
+    });
+  });
+}
+
+/* ---------------- interactions ---------------- */
+document.getElementById('patientPill').addEventListener('click',e=>{
+  e.stopPropagation();
+  document.getElementById('patientMenu').classList.toggle('open');
+});
+document.addEventListener('click',()=>document.getElementById('patientMenu').classList.remove('open'));
+
+/* ROM legend toggle */
+document.getElementById('romLegend').addEventListener('click',e=>{
+  const btn=e.target.closest('button'); if(!btn)return;
+  const key=btn.dataset.series;
+  romVisible[key]=!romVisible[key];
+  btn.classList.toggle('off',!romVisible[key]);
+  renderROM(PATIENTS[currentId]);
+});
+
+/* ROM chart tooltip */
+const chartTooltip=document.getElementById('chartTooltip');
+let tipHideTimer;
+function showTip(target,clientX,clientY){
+  chartTooltip.textContent=`${target.dataset.side} · ${target.dataset.t}% of rep · ${target.dataset.angle}°`;
+  chartTooltip.style.left=(clientX+12)+'px';
+  chartTooltip.style.top=(clientY-30)+'px';
+  chartTooltip.classList.add('show');
+}
+document.getElementById('romSvg').addEventListener('mousemove',e=>{
+  const t=e.target.closest('.rom-pt'); if(!t)return;
+  showTip(t,e.clientX,e.clientY);
+});
+document.getElementById('romSvg').addEventListener('mouseleave',()=>chartTooltip.classList.remove('show'));
+document.getElementById('romSvg').addEventListener('click',e=>{
+  const t=e.target.closest('.rom-pt'); if(!t)return;
+  showTip(t,e.clientX,e.clientY);
+  clearTimeout(tipHideTimer);
+  tipHideTimer=setTimeout(()=>chartTooltip.classList.remove('show'),2200);
+});
+
+/* risk explanation toggle */
+document.getElementById('riskInfoBtn').addEventListener('click',()=>{
+  const panel=document.getElementById('riskExplain');
+  if(panel.style.display==='block'){panel.style.display='none';return;}
+  const ex=explainRisk(PATIENTS[currentId]);
+  panel.innerHTML=`<ul>${ex.bullets.map(b=>`<li>${b}</li>`).join('')}</ul><p>${ex.reassuring}</p>`;
+  panel.style.display='block';
+});
+
+let toastTimer;
+function showToast(msg){
+  const t=document.getElementById('toast');
+  document.getElementById('toastText').textContent=msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>t.classList.remove('show'),3200);
+}
+
+/* sync */
+document.getElementById('btnSync').addEventListener('click',function(){
+  const p=PATIENTS[currentId];
+  if(p.offline===0){showToast('Already fully synced');return;}
+  const label=document.getElementById('syncBtnLabel');
+  const sub=document.getElementById('syncBtnSub');
+  const icon=this.querySelector('svg');
+  icon.classList.add('spin');
+  label.textContent='Syncing…';
+  this.disabled=true;
+  setTimeout(()=>{
+    const n=p.offline;
+    p.offline=0;
+    icon.classList.remove('spin');
+    label.textContent='Synchronize Now';
+    sub.textContent='(Offline Data: 0 Reports)';
+    document.getElementById('syncLabel').textContent='Offline: 0';
+    this.disabled=false;
+    showToast(`Synced ${n} offline report${n===1?'':'s'}`);
+  },1300);
+});
+
+/* history */
+const scrim=document.getElementById('scrim');
+const historyPanel=document.getElementById('historyPanel');
+document.getElementById('btnHistory').addEventListener('click',()=>{
+  historyPanel.classList.add('open'); scrim.classList.add('open');
+});
+document.getElementById('closeHistory').addEventListener('click',closeHistory);
+function closeHistory(){historyPanel.classList.remove('open'); if(!document.getElementById('recordModal').classList.contains('open')) scrim.classList.remove('open');}
+
+/* recording modal */
+const modal=document.getElementById('recordModal');
+const btnRecord=document.getElementById('btnRecord');
+const repRow=document.getElementById('repRow');
+const modalStatus=document.getElementById('modalStatus');
+
+function rand(min,max){return min+Math.random()*(max-min);}
+let captureActive=false;
+let liveTimer=null;
+
+function cloneForLive(p){
+  return {...p, hotspotsL:p.hotspotsL.map(h=>({...h})), hotspotsR:p.hotspotsR.map(h=>({...h}))};
+}
+function liveTick(){
+  const base=PATIENTS[currentId];
+  const jitter=(v,amt)=>v+(Math.random()-0.5)*amt;
+  const clone=cloneForLive(base);
+  clone.risk=Math.max(2,Math.min(98,Math.round(jitter(base.risk,12))));
+  clone.romPeakL=Math.max(35,jitter(base.romPeakL,12));
+  clone.romPeakR=Math.max(35,jitter(base.romPeakR,12));
+  clone.events=Math.max(0,Math.round(jitter(base.events,6)));
+  clone.gaitAsym=Math.max(1,Math.min(48,Math.round(jitter(base.gaitAsym,10))));
+  clone.hotspotsL.forEach(h=>h.i=Math.max(.05,Math.min(1,h.i+(Math.random()-0.5)*.3)));
+  clone.hotspotsR.forEach(h=>h.i=Math.max(.05,Math.min(1,h.i+(Math.random()-0.5)*.3)));
+
+  renderGauge(clone.risk);
+  const numEl=document.getElementById('riskNum');
+  numEl.textContent=clone.risk;
+  numEl.style.color=clone.risk<35?'#2F8F7E':clone.risk<70?'#B4790E':'#B03A36';
+  renderROM(clone);
+  renderWave(clone);
+  renderFoot('footLeft',clone.hotspotsL,false);
+  renderFoot('footRight',clone.hotspotsR,true);
+  renderAsymRing(clone.gaitAsym);
+}
+function startLiveCapture(){
+  document.getElementById('riskLabel').textContent='Recording…';
+  document.getElementById('riskNote').textContent='Reading live sensor stream';
+  document.getElementById('liveBadge').style.display='inline-flex';
+  ['gaugeSvg','romSvg','waveSvg','footLeft'].forEach(id=>{
+    document.getElementById(id).closest('.card').classList.add('live-capturing');
+  });
+  if(liveTimer)clearInterval(liveTimer);
+  liveTimer=setInterval(liveTick,220);
+}
+function stopLiveCapture(){
+  if(liveTimer)clearInterval(liveTimer);
+  liveTimer=null;
+  document.getElementById('liveBadge').style.display='none';
+  document.querySelectorAll('.card.live-capturing').forEach(c=>c.classList.remove('live-capturing'));
+  renderAll();
+}
+
+function buildReps(){
+  repRow.innerHTML='';
+  for(let i=1;i<=3;i++){
+    const d=document.createElement('div');
+    d.className='rep-chip'; d.id='rep'+i;
+    d.innerHTML=`<div class="rs"></div><div class="rn">Rep ${i}</div>`;
+    repRow.appendChild(d);
+  }
+}
+function openModal(){
+  document.getElementById('captureView').style.display='block';
+  document.getElementById('resultsView').style.display='none';
+  buildReps();
+  modalStatus.textContent='Starting capture…';
+  modal.classList.add('open'); scrim.classList.add('open');
+  captureActive=true;
+  startLiveCapture();
+  setTimeout(()=>runCapture(1), rand(400,700));
+}
+function closeModal(){
+  captureActive=false;
+  stopLiveCapture();
+  modal.classList.remove('open'); if(!historyPanel.classList.contains('open')) scrim.classList.remove('open');
+}
+document.getElementById('closeModal').addEventListener('click',closeModal);
+
+function runCapture(rep){
+  if(!captureActive)return;
+  if(rep>3){ runAnalysis(); return; }
+  const chip=document.getElementById('rep'+rep);
+  chip.classList.add('active');
+  const downT=rand(750,1150), upT=rand(750,1200);
+  modalStatus.textContent=`Rep ${rep} of 3 — lowering…`;
+  setTimeout(()=>{
+    if(!captureActive)return;
+    modalStatus.textContent=`Rep ${rep} of 3 — rising…`;
+    setTimeout(()=>{
+      if(!captureActive)return;
+      chip.classList.remove('active'); chip.classList.add('done');
+      modalStatus.textContent='Reset stance for next rep…';
+      setTimeout(()=>runCapture(rep+1), rand(450,850));
+    },upT);
+  },downT);
+}
+function runAnalysis(){
+  stopLiveCapture();
+  modalStatus.textContent='Extracting features from IMU · acoustic · pressure streams…';
+  setTimeout(()=>{
+    if(!captureActive)return;
+    modalStatus.textContent='Running on-device logistic regression…';
+    setTimeout(()=>{
+      if(!captureActive)return;
+      applyNewSession();
+      showResults();
+    },rand(1000,1700));
+  },rand(700,1100));
+}
+function showResults(){
+  const p=PATIENTS[currentId];
+  document.getElementById('captureView').style.display='none';
+  const rv=document.getElementById('resultsView'); rv.style.display='block';
+  const scoreEl=document.getElementById('resultsScore');
+  scoreEl.textContent=p.risk;
+  scoreEl.style.color=p.risk<35?'#2F8F7E':p.risk<70?'#B4790E':'#B03A36';
+  document.getElementById('resultsLabel').textContent=riskLabelFor(p.risk)[0];
+  const ex=explainRisk(p);
+  document.getElementById('explainList').innerHTML=ex.bullets.map(b=>`<li>${b}</li>`).join('');
+  document.getElementById('explainNote').textContent=ex.reassuring;
+}
+document.getElementById('resultsDone').addEventListener('click',()=>{
+  closeModal();
+  showToast(`Recording analyzed — risk score updated to ${PATIENTS[currentId].risk}`);
+});
+btnRecord.addEventListener('click',openModal);
+
+function applyNewSession(){
+  const p=PATIENTS[currentId];
+  const delta=Math.round((Math.random()-0.5)*8);
+  p.risk=Math.max(4,Math.min(96,p.risk+delta));
+  p.romPeakL=Math.max(60,Math.min(115,p.romPeakL+Math.round((Math.random()-0.4)*4)));
+  p.romPeakR=Math.max(60,Math.min(118,p.romPeakR+Math.round((Math.random()-0.4)*4)));
+  p.events=Math.max(1,p.events+Math.round((Math.random()-0.5)*3));
+  p.gaitAsym=Math.max(2,Math.min(45,p.gaitAsym+Math.round((Math.random()-0.5)*4)));
+  p.offline+=1;
+  const today=new Date();
+  const label=today.toLocaleDateString('en-US',{month:'short',day:'2-digit'});
+  p.sessions.push({date:label,risk:p.risk});
+  renderAll();
+}
+
+scrim.addEventListener('click',()=>{closeModal();closeHistory();});
+
+/* ---------------- packet feed: fake BLE now, real BLE later, same receiving code ---------------- */
+const FEATURE_ORDER=['band_energy','spectral_centroid','click_count','ROM','peak_velocity','time_to_peak','peak_load','load_rate','center_of_pressure'];
+// Placeholder GATT UUIDs — the ESP32 firmware needs to expose a service/characteristic with these
+// same UUIDs, notifying 18-byte packets (9 x signed int16, little-endian, value = feature*100).
+const BLE_SERVICE_UUID='7b1e8f00-0d1a-4a6d-9a1e-2f6c9e001001';
+const BLE_CHAR_UUID='7b1e8f00-0d1a-4a6d-9a1e-2f6c9e001002';
+
+function buildSimulatedPacket(){
+  const p=PATIENTS[currentId];
+  const sev=p.risk/100;
+  const jitter=(base,spread)=>+(base+(Math.random()-0.5)*spread).toFixed(2);
+  return {
+    band_energy:jitter(0.3+sev*0.5,0.08),
+    spectral_centroid:jitter(1200+sev*600,150),
+    click_count:Math.max(0,Math.round(jitter(sev*4,2))),
+    ROM:jitter(p.romPeakL,4),
+    peak_velocity:jitter(90+sev*40,15),
+    time_to_peak:jitter(0.9-sev*0.2,0.1),
+    peak_load:jitter(600+sev*150,60),
+    load_rate:jitter(4+sev*2,0.6),
+    center_of_pressure:jitter(sev*18,3)
+  };
+}
+// This is the function the real ESP32 characteristic notification calls too —
+// receiving code never changes when the fake source is swapped for the real one.
+function parseBlePacket(dataView){
+  const out={};
+  FEATURE_ORDER.forEach((name,i)=>{ out[name]=dataView.getInt16(i*2,true)/100; });
+  return out;
+}
+function logPacket(pkt,source){
+  const log=document.getElementById('feedLog');
+  const time=new Date().toLocaleTimeString('en-GB',{hour12:false});
+  const line=document.createElement('div');
+  line.textContent=`${time}  ROM ${pkt.ROM.toFixed(1)}°  clicks ${pkt.click_count}  load ${pkt.peak_load.toFixed(0)}N  load_rate ${pkt.load_rate.toFixed(1)}  [${source}]`;
+  log.appendChild(line);
+  while(log.children.length>8) log.removeChild(log.firstChild);
+  log.scrollTop=log.scrollHeight;
+}
+let simTimer=null;
+function startSimulatedFeed(){
+  if(simTimer)clearInterval(simTimer);
+  simTimer=setInterval(()=>logPacket(buildSimulatedPacket(),'sim'), rand(2200,4000));
+}
+function stopSimulatedFeed(){ if(simTimer)clearInterval(simTimer); simTimer=null; }
+
+function setBleStatus(state,label){
+  const dot=document.getElementById('bleDot'), text=document.getElementById('bleText'), pill=document.getElementById('feedPill');
+  dot.className='ble-dot '+(state==='live'?'live':state==='err'?'err':'');
+  text.textContent=label;
+  pill.className='feed-pill '+(state==='live'?'live':state==='err'?'err':'');
+  pill.textContent=label;
+}
+
+let bleDevice=null;
+async function connectBluetooth(){
+  if(!navigator.bluetooth){
+    setBleStatus('err','Bluetooth unsupported');
+    showToast('This browser has no Web Bluetooth — use Chrome or Edge (not available on iOS Safari)');
+    return;
+  }
+  try{
+    bleDevice=await navigator.bluetooth.requestDevice({acceptAllDevices:true,optionalServices:[BLE_SERVICE_UUID]});
+    setBleStatus('sim',`Pairing ${bleDevice.name||'device'}…`);
+    const server=await bleDevice.gatt.connect();
+    try{
+      const service=await server.getPrimaryService(BLE_SERVICE_UUID);
+      const char=await service.getCharacteristic(BLE_CHAR_UUID);
+      await char.startNotifications();
+      char.addEventListener('characteristicvaluechanged',e=>logPacket(parseBlePacket(e.target.value),'esp32'));
+      stopSimulatedFeed();
+      setBleStatus('live',`${bleDevice.name||'ESP32'} · Live BLE`);
+      showToast('Live BLE feed connected');
+    }catch(svcErr){
+      setBleStatus('sim',`${bleDevice.name||'Device'} paired · sim data`);
+      showToast("Paired, but firmware doesn't expose the feature service yet — using simulated packets");
+    }
+    bleDevice.addEventListener('gattserverdisconnected',()=>{
+      setBleStatus('sim','Disconnected · sim feed');
+      startSimulatedFeed();
+    });
+  }catch(err){
+    showToast('Bluetooth connection cancelled or failed');
+  }
+}
+document.getElementById('btnConnectBle').addEventListener('click',connectBluetooth);
+startSimulatedFeed();
+
+/* ---------------- init ---------------- */
+renderAll();
+</script>
+</body>
+</html>
