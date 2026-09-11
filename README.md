@@ -2,8 +2,7 @@
 
 A multimodal wearable for early screening of knee osteoarthritis (OA) — built for **Smart India Hackathon 2026**.
 
-**Live demo:** https://harshraj1607.github.io/arthroscreen/ *(update this link if your repo/GitHub Pages URL is different)*
-
+**Live demo:** https://harshraj1607.github.io/arthroscreen/ 
 ---
 
 ## The problem
@@ -49,7 +48,7 @@ All data in the current build is simulated for two example patients; nothing her
 
 - Vanilla HTML/CSS/JS (no framework, no build step) for the dashboard
 - Hand-drawn SVG for the gauge, charts, waveform, and pressure maps
-- Web Bluetooth API for the (optional) real ESP32 link
+- Web Bluetooth API for the ESP32 link
 - Python (numpy/pandas/scikit-learn) for the offline synthetic-data generator and logistic regression training/eval script
 - ESP32 + BLE for the planned hardware side
 
@@ -57,20 +56,4 @@ All data in the current build is simulated for two example patients; nothing her
 
 No install needed — just open `index.html` in a browser (Chrome or Edge if you want to try the Web Bluetooth flow, since it isn't supported on iOS Safari). It's also served live via GitHub Pages at the link above.
 
-## Status & what's next
 
-- [x] SIH2026 idea deck (problem framing, technical approach, feasibility, impact)
-- [x] Synthetic data generator + logistic regression pipeline (smoke test — not a real accuracy number yet)
-- [x] Full clickable dashboard prototype
-- [ ] Fix generator class overlap so healthy/OA feature ranges aren't near-perfectly separable
-- [ ] Real ESP32 firmware exposing the BLE feature characteristic
-- [ ] Train on real (not synthetic) sensor data once hardware is built
-- [ ] Hand-labelled trace validation of the risk model against clinician assessment
-
-## Hackathon context
-
-Built as a Smart India Hackathon 2026 submission.
-
-## License
-
-MIT — see `LICENSE` (add one if you haven't yet; GitHub can generate it for you when creating the repo).
